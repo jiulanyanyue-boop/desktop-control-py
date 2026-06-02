@@ -4,22 +4,21 @@ from __future__ import annotations
 
 import base64
 import ctypes
+import time
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-import time
 from typing import Any
 
-from mss import mss
-from PIL import Image, ImageOps
 import win32api
 import win32clipboard
 import win32con
 import win32gui
+from mss import mss
+from PIL import Image, ImageOps
 
 from ..errors import DesktopControlError
 from ..models import AppSettings
-
 
 USER32 = ctypes.windll.user32
 KERNEL32 = ctypes.windll.kernel32
@@ -279,7 +278,12 @@ class WindowsDesktopBackend:
             self._sleep_ms(self._settings.timing.key_press_delay_ms)
         return {"keys": keys}
 
-    def list_windows(self, title: str | None = None, exact: bool = False, visible_only: bool = True) -> list[dict[str, Any]]:
+    def list_windows(
+        self,
+        title: str | None = None,
+        exact: bool = False,
+        visible_only: bool = True,
+    ) -> list[dict[str, Any]]:
         """枚举顶层窗口并按条件筛选。"""
 
         windows: list[dict[str, Any]] = []

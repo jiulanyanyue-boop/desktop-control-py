@@ -10,7 +10,6 @@ from mcp.server.fastmcp import FastMCP
 from .browser_flow import DEFAULT_BROWSER_TITLE_HINT
 from .service import DesktopService
 
-
 ToolDecorator = Callable[[Callable[..., Any]], Callable[..., Any]]
 
 
@@ -47,7 +46,12 @@ class AtomicToolRegistrar(BaseToolRegistrar):
         ) -> dict[str, Any]:
             """Capture the current screen and return base64 image content plus metadata."""
 
-            return service.screen_capture(region=region, format=format, quality=quality, grayscale=grayscale).model_dump()
+            return service.screen_capture(
+                region=region,
+                format=format,
+                quality=quality,
+                grayscale=grayscale,
+            ).model_dump()
 
         @structured_tool()
         def screen_size() -> dict[str, Any]:

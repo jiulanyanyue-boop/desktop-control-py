@@ -43,9 +43,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/desktop-control-py/desktop-control-py"
-Repository = "https://github.com/desktop-control-py/desktop-control-py"
-Issues = "https://github.com/desktop-control-py/desktop-control-py/issues"
+Homepage = "https://github.com/jiulanyanyue-boop/desktop-control-py"
+Repository = "https://github.com/jiulanyanyue-boop/desktop-control-py"
+Issues = "https://github.com/jiulanyanyue-boop/desktop-control-py/issues"
 
 [project.scripts]
 desktop-control-py = "desktop_control_py.cli:main"

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
 import sys
 import time
+from pathlib import Path
+
+import pywintypes
 
 from .backends.protocol import DesktopBackend
 from .backends.win32 import WindowsDesktopBackend
@@ -13,13 +15,15 @@ from .config import load_settings
 from .errors import DesktopControlError
 from .service import DesktopService
 
+SMOKE_RECOVERY_EXCEPTIONS = (DesktopControlError, OSError, RuntimeError, pywintypes.error)
+
 
 def _desktop_looks_locked(backend: DesktopBackend) -> bool:
     """判断当前桌面是否不可交互，避免把锁屏误报为工具失败。"""
 
     try:
         active = backend.get_active_window()
-    except Exception:
+    except SMOKE_RECOVERY_EXCEPTIONS:
         return False
     title = (active.get("title") or "").lower()
     process_name = (active.get("process_name") or "").lower()
@@ -73,7 +77,7 @@ def run_smoke_test(config_path: Path | None = None) -> int:
         time.sleep(0.2)
         try:
             active_after_click = backend.get_active_window()
-        except Exception:
+        except SMOKE_RECOVERY_EXCEPTIONS:
             active_after_click = {}
         if smoke_window_title.lower() not in (active_after_click.get("title") or "").lower():
             print("[SKIP] Notepad did not become the active window; real smoke requires interactive foreground control")
@@ -137,7 +141,7 @@ def run_smoke_test(config_path: Path | None = None) -> int:
                 backend.click_mouse("left")
                 backend.hotkey(["ctrl", "s"])
                 backend.hotkey(["alt", "f4"])
-        except Exception:
+        except SMOKE_RECOVERY_EXCEPTIONS:
             pass
         if launched_process and launched_process.poll() is None:
             try:

@@ -9,7 +9,6 @@ from .engine import ActionEngine
 from .errors import DesktopControlError
 from .models import ActionResult, AppSettings
 
-
 DEFAULT_BROWSER_TITLE_HINT = "Chrome|Edge|Browser"
 """公开浏览器默认匹配提示，保持通用浏览器叙事。"""
 

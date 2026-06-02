@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from importlib import import_module
-from pathlib import Path
 import platform
 import sys
+from importlib import import_module
+from pathlib import Path
 
 from .config import load_settings
-
 
 REQUIRED_MODULES = [
     "mcp",

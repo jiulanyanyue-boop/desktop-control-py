@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from .action_flow import ActionFlow
 from .backends.protocol import DesktopBackend
 from .browser_flow import DEFAULT_BROWSER_TITLE_HINT, BrowserFlow
@@ -311,7 +309,11 @@ class DesktopService:
             grayscale=grayscale,
         )
 
-    def browser_capture(self, title_hint: str = DEFAULT_BROWSER_TITLE_HINT, include_cursor: bool = True) -> ActionResult:
+    def browser_capture(
+        self,
+        title_hint: str = DEFAULT_BROWSER_TITLE_HINT,
+        include_cursor: bool = True,
+    ) -> ActionResult:
         """委托 BrowserFlow 执行浏览器截图。"""
 
         return self._browser.capture(title_hint=title_hint, include_cursor=include_cursor)

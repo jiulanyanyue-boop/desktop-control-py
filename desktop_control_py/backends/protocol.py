@@ -42,7 +42,12 @@ class DesktopBackend(Protocol):
     def hotkey(self, keys: list[str]) -> dict[str, Any]:
         """执行组合键。"""
 
-    def list_windows(self, title: str | None = None, exact: bool = False, visible_only: bool = True) -> list[dict[str, Any]]:
+    def list_windows(
+        self,
+        title: str | None = None,
+        exact: bool = False,
+        visible_only: bool = True,
+    ) -> list[dict[str, Any]]:
         """列出顶层窗口。"""
 
     def get_active_window(self) -> dict[str, Any]:
