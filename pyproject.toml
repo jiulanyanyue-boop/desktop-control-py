@@ -1,0 +1,73 @@
+[project]
+name = "desktop-control-py"
+version = "0.1.0"
+description = "Windows-only desktop control MCP implemented in Python."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+  { name = "desktop-control-py contributors" },
+]
+maintainers = [
+  { name = "desktop-control-py contributors" },
+]
+keywords = [
+  "mcp",
+  "windows",
+  "desktop-automation",
+  "screenshot",
+  "win32",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Win32 (MS Windows)",
+  "Intended Audience :: Developers",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "mcp>=1.25.0",
+  "mss>=10.1.0",
+  "pillow>=12.1.0",
+  "pydantic>=2.5.3",
+  "pywin32>=311",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.3.0",
+  "pytest>=8.3.5",
+  "ruff>=0.14.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/desktop-control-py/desktop-control-py"
+Repository = "https://github.com/desktop-control-py/desktop-control-py"
+Issues = "https://github.com/desktop-control-py/desktop-control-py/issues"
+
+[project.scripts]
+desktop-control-py = "desktop_control_py.cli:main"
+
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["desktop_control_py*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "BLE"]

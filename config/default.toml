@@ -1,0 +1,26 @@
+[timing]
+mouse_move_duration_ms = 0
+post_move_delay_ms = 0
+key_press_delay_ms = 20
+text_type_interval_ms = 8
+post_click_delay_ms = 40
+post_focus_delay_ms = 120
+safe_retry_attempts = 3
+safe_retry_interval_ms = 150
+window_find_timeout_ms = 1500
+
+[safety]
+block_system_hotkeys = true
+block_dangerous_window_ops = true
+dangerous_window_titles = ["Task Manager", "Registry Editor"]
+allowed_system_hotkeys = []
+
+[logging]
+level = "INFO"
+log_file = "runtime/desktop-control.log"
+session_file = "runtime/session.jsonl"
+
+[screenshot]
+default_format = "png"
+default_quality = 90
+grayscale = false

@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a scoped improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user need does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the smallest safe implementation.
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Safety boundary check
+      options:
+        - label: This does not add DOM scraping or hidden page-text extraction.
+        - label: This does not add CAPTCHA bypass.
+        - label: This does not automate job submissions or sensitive account actions.
