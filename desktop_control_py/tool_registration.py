@@ -173,6 +173,45 @@ class AtomicToolRegistrar(BaseToolRegistrar):
 
             return service.clipboard_has_text().model_dump()
 
+        @structured_tool()
+        def desktop_snapshot(
+            include_windows: bool = True,
+            max_windows: int = 20,
+            visible_only: bool = True,
+            include_clipboard_state: bool = True,
+            include_screenshot: bool = False,
+        ) -> dict[str, Any]:
+            """Return read-only desktop context so an agent can observe before acting."""
+
+            return service.desktop_snapshot(
+                include_windows=include_windows,
+                max_windows=max_windows,
+                visible_only=visible_only,
+                include_clipboard_state=include_clipboard_state,
+                include_screenshot=include_screenshot,
+            ).model_dump()
+
+        @structured_tool()
+        def safety_check(
+            kind: str,
+            keys: list[str] | None = None,
+            operation: str | None = None,
+            title: str | None = None,
+        ) -> dict[str, Any]:
+            """Preflight hotkeys or window operations without touching the desktop."""
+
+            return service.safety_check(kind=kind, keys=keys, operation=operation, title=title).model_dump()
+
+        @structured_tool()
+        def audit_recent(
+            limit: int = 20,
+            action_name: str | None = None,
+            ok: bool | None = None,
+        ) -> dict[str, Any]:
+            """Return recent structured audit log records for local desktop actions."""
+
+            return service.audit_recent(limit=limit, action_name=action_name, ok=ok).model_dump()
+
 
 class ActionToolRegistrar(BaseToolRegistrar):
     """注册 high-level action_* 工具。"""

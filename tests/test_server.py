@@ -107,6 +107,9 @@ def test_server_registers_required_tool_names(tmp_path: Path) -> None:
         "keyboard_hotkey",
         "window_focus",
         "clipboard_get",
+        "desktop_snapshot",
+        "safety_check",
+        "audit_recent",
         "action_type",
         "action_capture_screen",
         "browser_capture",
@@ -139,3 +142,27 @@ def test_server_screen_size_tool_returns_standard_envelope(tmp_path: Path) -> No
     assert result["data"] == {"width": 1920, "height": 1080}
     assert "duration_ms" in result
     assert result["warnings"] == []
+
+
+def test_server_exposes_agent_friendly_introspection_tools(tmp_path: Path) -> None:
+    """验证新增观察与预检工具通过 MCP server 暴露，并保持标准结果包。"""
+
+    from desktop_control_py.server import create_server
+
+    server = create_server(settings=_settings(tmp_path), backend=FakeDesktopBackend())
+
+    snapshot = asyncio.run(server.call_tool("desktop_snapshot", {"max_windows": 1}))
+    safety = asyncio.run(server.call_tool("safety_check", {"kind": "hotkey", "keys": ["alt", "f4"]}))
+    audit = asyncio.run(server.call_tool("audit_recent", {"limit": 5}))
+
+    assert snapshot["ok"] is True
+    assert snapshot["data"]["screen"] == {"width": 1920, "height": 1080}
+    assert snapshot["data"]["window_count"] == 1
+    assert len(snapshot["data"]["windows"]) == 1
+
+    assert safety["ok"] is True
+    assert safety["data"]["allowed"] is False
+    assert safety["data"]["reason_code"] == "blocked_system_hotkey"
+
+    assert audit["ok"] is True
+    assert audit["data"]["records"][0]["action_name"] == "desktop_snapshot"

@@ -4,11 +4,20 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from .models import AppSettings
+
+
+@dataclass(slots=True)
+class AuditReadResult:
+    """表示审计日志读取结果和读取过程中的非致命 warning。"""
+
+    records: list[dict[str, Any]] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 class StructuredLogger:
@@ -57,3 +66,47 @@ class StructuredLogger:
 
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+class AuditLogReader:
+    """读取结构化审计日志尾部，供 MCP 工具查询最近动作。"""
+
+    def __init__(self, path: Path) -> None:
+        """保存 JSONL 审计日志路径。"""
+
+        self._path = path
+
+    def read_recent(
+        self,
+        limit: int = 20,
+        action_name: str | None = None,
+        ok: bool | None = None,
+    ) -> AuditReadResult:
+        """读取最近审计记录，并按动作名和成功状态做可选过滤。"""
+
+        normalized_limit = max(0, min(limit, 100))
+        if normalized_limit == 0 or not self._path.exists():
+            return AuditReadResult()
+
+        records: list[dict[str, Any]] = []
+        warnings: list[str] = []
+        with self._path.open("r", encoding="utf-8") as handle:
+            for line_number, line in enumerate(handle, start=1):
+                raw_line = line.strip()
+                if not raw_line:
+                    continue
+                try:
+                    record = json.loads(raw_line)
+                except json.JSONDecodeError as exc:
+                    warnings.append(f"Skipping malformed audit JSON at line {line_number}: {exc.msg}")
+                    continue
+                if not isinstance(record, dict):
+                    warnings.append(f"Skipping non-object audit JSON at line {line_number}.")
+                    continue
+                if action_name is not None and record.get("action_name") != action_name:
+                    continue
+                if ok is not None and record.get("ok") is not ok:
+                    continue
+                records.append(record)
+
+        return AuditReadResult(records=records[-normalized_limit:], warnings=warnings)

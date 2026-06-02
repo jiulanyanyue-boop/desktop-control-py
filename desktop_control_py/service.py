@@ -7,8 +7,9 @@ from .backends.protocol import DesktopBackend
 from .browser_flow import DEFAULT_BROWSER_TITLE_HINT, BrowserFlow
 from .engine import ActionEngine
 from .errors import DesktopControlError
+from .logging_utils import AuditLogReader
 from .models import ActionResult, AppSettings
-from .safety import SafetyPolicy
+from .safety import SafetyPolicy, normalize_hotkey
 
 
 class DesktopService:
@@ -254,6 +255,142 @@ class DesktopService:
         """判断剪贴板当前是否含有文本。"""
 
         return self._engine.execute("clipboard_has_text", action=self._backend.clipboard_has_text, retryable=True)
+
+    def desktop_snapshot(
+        self,
+        include_windows: bool = True,
+        max_windows: int = 20,
+        visible_only: bool = True,
+        include_clipboard_state: bool = True,
+        include_screenshot: bool = False,
+    ) -> ActionResult:
+        """一次性读取当前桌面上下文，供 agent 在行动前观察环境。"""
+
+        window_limit = max(0, min(max_windows, 100))
+
+        def observe_desktop() -> dict:
+            """组合只读后端调用，生成不会触发输入副作用的桌面快照。"""
+
+            snapshot = {
+                "screen": self._backend.get_screen_size(),
+                "cursor": self._backend.get_cursor_position(),
+                "active_window": self._backend.get_active_window(),
+            }
+
+            if include_windows:
+                windows = self._backend.list_windows(visible_only=visible_only)
+                snapshot["windows"] = windows[:window_limit]
+                snapshot["window_count"] = len(windows)
+
+            if include_clipboard_state:
+                snapshot["clipboard"] = self._backend.clipboard_has_text()
+
+            if include_screenshot:
+                snapshot["screenshot"] = self._backend.capture_screen()
+
+            return snapshot
+
+        return self._engine.execute(
+            "desktop_snapshot",
+            action=observe_desktop,
+            retryable=True,
+            metadata={
+                "include_windows": include_windows,
+                "max_windows": window_limit,
+                "visible_only": visible_only,
+                "include_clipboard_state": include_clipboard_state,
+                "include_screenshot": include_screenshot,
+            },
+        )
+
+    def safety_check(
+        self,
+        kind: str,
+        keys: list[str] | None = None,
+        operation: str | None = None,
+        title: str | None = None,
+    ) -> ActionResult:
+        """在真实输入前执行无副作用安全预检。"""
+
+        normalized_kind = kind.strip().lower()
+
+        def check_policy() -> dict:
+            """根据预检类型调用对应安全策略，不访问桌面后端。"""
+
+            if normalized_kind == "hotkey":
+                if not keys:
+                    raise DesktopControlError(
+                        code="missing_safety_check_keys",
+                        message="Safety check kind 'hotkey' requires keys.",
+                    )
+                decision = self._safety.evaluate_hotkey(keys)
+                return {
+                    "kind": normalized_kind,
+                    "allowed": decision.allowed,
+                    "reason_code": decision.reason_code,
+                    "message": decision.message,
+                    "normalized_hotkey": normalize_hotkey(keys),
+                    "policy_scope": "system_hotkey",
+                }
+
+            if normalized_kind == "window_operation":
+                operation_name = operation or "window_operation"
+                decision = self._safety.evaluate_window_operation(operation_name, title)
+                return {
+                    "kind": normalized_kind,
+                    "allowed": decision.allowed,
+                    "reason_code": decision.reason_code,
+                    "message": decision.message,
+                    "operation": operation_name,
+                    "title": title,
+                    "policy_scope": "dangerous_window",
+                }
+
+            raise DesktopControlError(
+                code="invalid_safety_check_kind",
+                message=f"Unsupported safety check kind: {kind}",
+                details={"kind": kind},
+            )
+
+        return self._engine.execute(
+            "safety_check",
+            action=check_policy,
+            retryable=False,
+            metadata={"kind": normalized_kind, "keys": keys, "operation": operation, "title": title},
+        )
+
+    def audit_recent(
+        self,
+        limit: int = 20,
+        action_name: str | None = None,
+        ok: bool | None = None,
+    ) -> ActionResult:
+        """读取最近结构化审计记录，帮助用户检查 MCP 动作历史。"""
+
+        normalized_limit = max(0, min(limit, 100))
+
+        def read_audit() -> dict:
+            """从 session JSONL 中读取最近动作，不访问桌面后端。"""
+
+            read_result = AuditLogReader(self._settings.logging.session_file).read_recent(
+                limit=normalized_limit,
+                action_name=action_name,
+                ok=ok,
+            )
+            return {
+                "records": read_result.records,
+                "read_warnings": read_result.warnings,
+                "limit": normalized_limit,
+                "action_name": action_name,
+                "ok": ok,
+            }
+
+        return self._engine.execute(
+            "audit_recent",
+            action=read_audit,
+            retryable=False,
+            metadata={"limit": normalized_limit, "action_name": action_name, "ok": ok},
+        )
 
     def action_focus_window(self, title: str, exact: bool = False, timeout_ms: int | None = None) -> ActionResult:
         """委托 ActionFlow 聚焦目标窗口。"""

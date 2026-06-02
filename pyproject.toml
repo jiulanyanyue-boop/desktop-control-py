@@ -1,7 +1,7 @@
 [project]
 name = "desktop-control-py"
 version = "0.1.0"
-description = "Windows-only desktop control MCP implemented in Python."
+description = "Agent-friendly Windows desktop MCP with screenshot-first control, safety preflight, and audit logs."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -16,6 +16,9 @@ keywords = [
   "windows",
   "desktop-automation",
   "screenshot",
+  "computer-use",
+  "ai-agent",
+  "audit",
   "win32",
 ]
 classifiers = [
