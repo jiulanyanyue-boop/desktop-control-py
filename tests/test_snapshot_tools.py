@@ -64,6 +64,17 @@ class SnapshotFakeBackend:
         self.calls.append("capture_screen")
         return {"mime_type": "image/png", "width": 10, "height": 8, "base64_data": "ZmFrZQ=="}
 
+    def get_screen_metrics(self) -> dict[str, Any]:
+        """返回固定屏幕指标，覆盖 Computer Use 风格坐标契约。"""
+
+        self.calls.append("get_screen_metrics")
+        return {
+            "primary_screen": {"width": 1920, "height": 1080},
+            "virtual_screen": {"left": 0, "top": 0, "width": 1920, "height": 1080},
+            "monitors": [{"index": 1, "left": 0, "top": 0, "width": 1920, "height": 1080, "primary": True}],
+            "dpi": {"system": 96, "scale": 1.0},
+        }
+
     def move_mouse(self, x: int, y: int) -> dict[str, int]:
         """禁止桌面快照移动鼠标。"""
 
@@ -158,5 +169,46 @@ def test_desktop_snapshot_can_include_screenshot_when_explicit(tmp_path: Path) -
         "get_screen_size",
         "get_cursor_position",
         "get_active_window",
+        "capture_screen",
+    ]
+
+
+def test_computer_observe_saves_screenshot_artifact_with_coordinate_contract(tmp_path: Path) -> None:
+    """验证 Computer Use 风格观察会保存截图文件，并返回稳定坐标说明。"""
+
+    from desktop_control_py.service import DesktopService
+
+    backend = SnapshotFakeBackend()
+    service = DesktopService(settings=_settings(tmp_path), backend=backend)
+
+    result = service.computer_observe(max_windows=1, return_screenshot_data=False)
+
+    artifact = result.data["screenshot_artifact"]
+    artifact_path = Path(artifact["path"])
+
+    assert result.ok is True
+    assert result.data["strategy_used"] == "observe_only"
+    assert result.data["coordinate_space"] == {
+        "type": "screen_pixels",
+        "origin": "virtual_screen_top_left",
+        "units": "px",
+        "click_coordinates": "absolute_screen_xy",
+    }
+    assert result.data["screen_metrics"]["virtual_screen"]["width"] == 1920
+    assert result.data["window_count"] == 3
+    assert len(result.data["windows"]) == 1
+    assert "screenshot" not in result.data
+    assert artifact["mime_type"] == "image/png"
+    assert artifact["width"] == 10
+    assert artifact["height"] == 8
+    assert artifact_path.exists()
+    assert artifact_path.read_bytes() == b"fake"
+    assert backend.calls == [
+        "get_screen_size",
+        "get_cursor_position",
+        "get_active_window",
+        "get_screen_metrics",
+        "list_windows:True",
+        "clipboard_has_text",
         "capture_screen",
     ]

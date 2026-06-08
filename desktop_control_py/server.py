@@ -56,7 +56,8 @@ def create_server(
     server = FastMCP(
         name="desktop_control_py",
         instructions=(
-            "Windows-only local desktop control MCP. Browser pages use screenshot-first coordinate flow only; "
+            "Windows-only local desktop control MCP. Use computer_observe and computer_step for "
+            "observe-act-observe desktop loops. Browser pages use screenshot-first coordinate flow only; "
             "no DOM/UIA/page-text/clipboard capture tools are registered."
         ),
     )

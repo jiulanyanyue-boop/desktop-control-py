@@ -10,6 +10,14 @@ class FakeDesktopBackend:
     def get_screen_size(self) -> dict:
         return {"width": 1920, "height": 1080}
 
+    def get_screen_metrics(self) -> dict:
+        return {
+            "primary_screen": {"width": 1920, "height": 1080},
+            "virtual_screen": {"left": 0, "top": 0, "width": 1920, "height": 1080},
+            "monitors": [{"index": 1, "left": 0, "top": 0, "width": 1920, "height": 1080, "primary": True}],
+            "dpi": {"system": 96, "scale": 1.0},
+        }
+
     def get_cursor_position(self) -> dict:
         return {"x": 10, "y": 20}
 
@@ -108,6 +116,8 @@ def test_server_registers_required_tool_names(tmp_path: Path) -> None:
         "window_focus",
         "clipboard_get",
         "desktop_snapshot",
+        "computer_observe",
+        "computer_step",
         "safety_check",
         "audit_recent",
         "action_type",
@@ -152,6 +162,19 @@ def test_server_exposes_agent_friendly_introspection_tools(tmp_path: Path) -> No
     server = create_server(settings=_settings(tmp_path), backend=FakeDesktopBackend())
 
     snapshot = asyncio.run(server.call_tool("desktop_snapshot", {"max_windows": 1}))
+    observation = asyncio.run(server.call_tool("computer_observe", {"max_windows": 1, "return_screenshot_data": False}))
+    step = asyncio.run(
+        server.call_tool(
+            "computer_step",
+            {
+                "action": "click",
+                "x": 12,
+                "y": 34,
+                "observe_before": False,
+                "observe_after": False,
+            },
+        )
+    )
     safety = asyncio.run(server.call_tool("safety_check", {"kind": "hotkey", "keys": ["alt", "f4"]}))
     audit = asyncio.run(server.call_tool("audit_recent", {"limit": 5}))
 
@@ -159,6 +182,17 @@ def test_server_exposes_agent_friendly_introspection_tools(tmp_path: Path) -> No
     assert snapshot["data"]["screen"] == {"width": 1920, "height": 1080}
     assert snapshot["data"]["window_count"] == 1
     assert len(snapshot["data"]["windows"]) == 1
+
+    assert observation["ok"] is True
+    assert observation["data"]["strategy_used"] == "observe_only"
+    assert observation["data"]["screenshot_artifact"]["mime_type"] == "image/png"
+    assert "screenshot" not in observation["data"]
+
+    assert step["ok"] is True
+    assert step["data"]["strategy_used"] == "observe_act_observe"
+    assert step["data"]["action"]["kind"] == "click"
+    assert "before_observation" not in step["data"]
+    assert "after_observation" not in step["data"]
 
     assert safety["ok"] is True
     assert safety["data"]["allowed"] is False

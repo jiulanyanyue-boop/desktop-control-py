@@ -5,6 +5,7 @@ from __future__ import annotations
 from .action_flow import ActionFlow
 from .backends.protocol import DesktopBackend
 from .browser_flow import DEFAULT_BROWSER_TITLE_HINT, BrowserFlow
+from .computer_flow import ComputerFlow
 from .engine import ActionEngine
 from .errors import DesktopControlError
 from .logging_utils import AuditLogReader
@@ -35,6 +36,7 @@ class DesktopService:
             window_controller=self,
         )
         self._browser = BrowserFlow(settings=settings, backend=backend, engine=self._engine)
+        self._computer = ComputerFlow(settings=settings, backend=backend, engine=self._engine, safety=self._safety)
 
     def screen_capture(
         self,
@@ -301,6 +303,68 @@ class DesktopService:
                 "include_clipboard_state": include_clipboard_state,
                 "include_screenshot": include_screenshot,
             },
+        )
+
+    def computer_observe(
+        self,
+        include_windows: bool = True,
+        max_windows: int = 20,
+        visible_only: bool = True,
+        include_clipboard_state: bool = True,
+        include_screenshot: bool = True,
+        save_screenshot: bool = True,
+        return_screenshot_data: bool = True,
+    ) -> ActionResult:
+        """执行 Computer Use 风格只读观察，并可保存可引用截图 artifact。"""
+
+        return self._computer.observe(
+            include_windows=include_windows,
+            max_windows=max_windows,
+            visible_only=visible_only,
+            include_clipboard_state=include_clipboard_state,
+            include_screenshot=include_screenshot,
+            save_screenshot=save_screenshot,
+            return_screenshot_data=return_screenshot_data,
+        )
+
+    def computer_step(
+        self,
+        action: str,
+        x: int | None = None,
+        y: int | None = None,
+        button: str = "left",
+        text: str | None = None,
+        keys: list[str] | None = None,
+        pre_focus_title: str | None = None,
+        observe_before: bool = True,
+        observe_after: bool = True,
+        include_windows: bool = True,
+        max_windows: int = 20,
+        visible_only: bool = True,
+        include_clipboard_state: bool = True,
+        include_screenshot: bool = True,
+        save_screenshot: bool = True,
+        return_screenshot_data: bool = True,
+    ) -> ActionResult:
+        """执行 observe-act-observe 闭环动作，面向通用桌面 Computer Use 场景。"""
+
+        return self._computer.step(
+            action=action,
+            x=x,
+            y=y,
+            button=button,
+            text=text,
+            keys=keys,
+            pre_focus_title=pre_focus_title,
+            observe_before=observe_before,
+            observe_after=observe_after,
+            include_windows=include_windows,
+            max_windows=max_windows,
+            visible_only=visible_only,
+            include_clipboard_state=include_clipboard_state,
+            include_screenshot=include_screenshot,
+            save_screenshot=save_screenshot,
+            return_screenshot_data=return_screenshot_data,
         )
 
     def safety_check(

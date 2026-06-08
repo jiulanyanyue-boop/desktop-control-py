@@ -12,6 +12,9 @@ class DesktopBackend(Protocol):
     def get_screen_size(self) -> dict[str, Any]:
         """返回当前屏幕尺寸。"""
 
+    def get_screen_metrics(self) -> dict[str, Any]:
+        """返回主屏、虚拟屏、多显示器和 DPI 缩放指标。"""
+
     def get_cursor_position(self) -> dict[str, Any]:
         """返回当前鼠标坐标。"""
 

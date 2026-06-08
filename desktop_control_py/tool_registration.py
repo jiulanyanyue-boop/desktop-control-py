@@ -192,6 +192,68 @@ class AtomicToolRegistrar(BaseToolRegistrar):
             ).model_dump()
 
         @structured_tool()
+        def computer_observe(
+            include_windows: bool = True,
+            max_windows: int = 20,
+            visible_only: bool = True,
+            include_clipboard_state: bool = True,
+            include_screenshot: bool = True,
+            save_screenshot: bool = True,
+            return_screenshot_data: bool = True,
+        ) -> dict[str, Any]:
+            """Observe the desktop with a Computer Use style coordinate contract and optional screenshot artifact."""
+
+            return service.computer_observe(
+                include_windows=include_windows,
+                max_windows=max_windows,
+                visible_only=visible_only,
+                include_clipboard_state=include_clipboard_state,
+                include_screenshot=include_screenshot,
+                save_screenshot=save_screenshot,
+                return_screenshot_data=return_screenshot_data,
+            ).model_dump()
+
+        @structured_tool()
+        def computer_step(
+            action: str,
+            x: int | None = None,
+            y: int | None = None,
+            button: str = "left",
+            text: str | None = None,
+            keys: list[str] | None = None,
+            pre_focus_title: str | None = None,
+            observe_before: bool = True,
+            observe_after: bool = True,
+            include_windows: bool = True,
+            max_windows: int = 20,
+            visible_only: bool = True,
+            include_clipboard_state: bool = True,
+            include_screenshot: bool = True,
+            save_screenshot: bool = True,
+            return_screenshot_data: bool = True,
+        ) -> dict[str, Any]:
+            """Run a scoped observe-act-observe desktop step for click, double_click, type, or hotkey actions."""
+
+            return service.computer_step(
+                action=action,
+                x=x,
+                y=y,
+                button=button,
+                text=text,
+                keys=keys,
+                pre_focus_title=pre_focus_title,
+                observe_before=observe_before,
+                observe_after=observe_after,
+                include_windows=include_windows,
+                max_windows=max_windows,
+                visible_only=visible_only,
+                include_clipboard_state=include_clipboard_state,
+                include_screenshot=include_screenshot,
+                save_screenshot=save_screenshot,
+                return_screenshot_data=return_screenshot_data,
+            ).model_dump()
+
+        @structured_tool()
         def safety_check(
             kind: str,
             keys: list[str] | None = None,

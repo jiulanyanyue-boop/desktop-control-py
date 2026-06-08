@@ -18,6 +18,7 @@
 
 - 先观察桌面，再行动。
 - 执行高风险动作前先做安全预检。
+- 需要证据链时，把 GUI 动作包进 observe-act-observe 闭环。
 - 浏览器交互采用 screenshot-first，而不是 DOM scraping。
 - 工具调用写入本地 JSONL session audit。
 - 只做 Windows，并且不假装它是跨平台沙箱。
@@ -29,6 +30,14 @@
 `desktop_snapshot` 是面向 agent 的只读桌面快照工具。一次调用返回屏幕尺寸、鼠标位置、活动窗口、可见窗口列表、剪贴板是否包含文本，以及可选截图。
 
 默认不会移动鼠标、输入、点击、聚焦窗口，也不会读取剪贴板文本。截图需要显式开启，因为截图 payload 较大且可能包含隐私信息。
+
+### Computer Use 风格观察/执行闭环
+
+`computer_observe` 是更适合视觉 agent 的观察工具。它返回桌面上下文、坐标契约、屏幕指标、可选 base64 截图，以及可选的 `runtime/` 本地截图 artifact。
+
+`computer_step` 会把一次受控桌面动作包进 observe-act-observe 结果。它支持 `click`、`double_click`、`type`、`hotkey`，可以按需返回动作前后观察和截图 artifact。文本输入结果只返回长度，不把输入文本回显到工具结果里。
+
+这是一套面向 Windows MCP agent 的 Computer Use 风格 loop，不声称兼容任何私有 Codex 协议。
 
 ### 真实输入前的安全预检
 
@@ -63,14 +72,13 @@
 一个实用的 agent loop 可以是：
 
 ```text
-desktop_snapshot
+computer_observe
   -> safety_check
-  -> browser_capture 或 action_capture_screen
-  -> browser_click / action_click / action_type / keyboard_hotkey
+  -> computer_step(action=click/type/hotkey, observe_before=true, observe_after=true)
   -> audit_recent
 ```
 
-核心原则很简单：先观察，再预检，再操作，最后检查发生了什么。
+浏览器专用场景仍然可以走更短的 `browser_capture -> browser_click -> audit_recent`。为了兼容旧客户端，`desktop_snapshot -> action_*` 工作流继续保留。
 
 ## 快速开始
 
@@ -137,6 +145,8 @@ desktop-control-py smoke-test [--config <path>]
 面向 agent 的观察和治理工具：
 
 - `desktop_snapshot`
+- `computer_observe`
+- `computer_step`
 - `safety_check`
 - `audit_recent`
 
@@ -172,7 +182,7 @@ desktop-control-py smoke-test [--config <path>]
 - runtime 日志与 session audit 路径。
 - 截图格式、质量和灰度默认值。
 
-生成的运行时文件写入 `runtime/`，除 `runtime/.gitkeep` 外均被 git 忽略。
+生成的运行时文件写入 `runtime/`，除 `runtime/.gitkeep` 外均被 git 忽略。`computer_observe` 和 `computer_step` 生成的截图 artifact 会写入 `runtime/screenshots/`。
 
 ## 验证
 
@@ -203,6 +213,8 @@ desktop-control-py serve --transport stdio
 - 默认阻止高风险系统热键。
 - 默认阻止危险窗口标题上的窗口操作。
 - 浏览器交互保持 screenshot-first。
+- 为视觉点击返回明确坐标系元数据。
+- 可选保存截图 artifact，方便复查和追踪。
 - 保留工具调用审计日志。
 - 把观察和安全预检暴露为明确 MCP 工具。
 
@@ -222,7 +234,11 @@ desktop-control-py serve --transport stdio
 
 `ActionFlow` 负责 `action_*` 复合动作，例如点击、输入、热键、截图前的可选窗口聚焦。
 
+`ComputerFlow` 负责更完整的 `computer_observe` 和 `computer_step` observe-act-observe 工作流，面向视觉桌面 agent。
+
 `BrowserFlow` 负责浏览器截图和坐标点击。它只依赖真实窗口/进程匹配与截图，不读取 DOM、UIA、页面文本或剪贴板。
+
+`ScreenshotArtifactStore` 负责把 Computer Use 风格观察截图保存到 `runtime/screenshots/`，避免会话复查完全依赖大体积 base64 payload。
 
 `tool_registration.py` 按责任域注册 MCP 工具：
 

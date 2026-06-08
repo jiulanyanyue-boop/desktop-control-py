@@ -167,6 +167,24 @@ class WindowsDesktopBackend:
             "height": USER32.GetSystemMetrics(1),
         }
 
+    def get_screen_metrics(self) -> dict[str, Any]:
+        """读取虚拟屏、多显示器和系统 DPI 指标，供坐标型 agent 稳定定位。"""
+
+        with mss() as sct:
+            virtual_screen = self._monitor_payload(index=0, monitor=sct.monitors[0], primary=False)
+            monitors = [
+                self._monitor_payload(index=index, monitor=monitor, primary=index == 1)
+                for index, monitor in enumerate(sct.monitors[1:], start=1)
+            ]
+
+        dpi = self._system_dpi()
+        return {
+            "primary_screen": self.get_screen_size(),
+            "virtual_screen": virtual_screen,
+            "monitors": monitors,
+            "dpi": {"system": dpi, "scale": round(dpi / 96, 3)},
+        }
+
     def get_cursor_position(self) -> dict[str, int]:
         """读取当前鼠标坐标。"""
 
@@ -419,6 +437,28 @@ class WindowsDesktopBackend:
             screenshot = sct.grab(monitor)
         image = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
         return encode_image_payload(image=image, format=format, quality=quality, grayscale=grayscale)
+
+    @staticmethod
+    def _monitor_payload(index: int, monitor: dict[str, int], primary: bool) -> dict[str, Any]:
+        """把 mss monitor 结构转换为公开的屏幕指标载荷。"""
+
+        return {
+            "index": index,
+            "left": int(monitor.get("left", 0)),
+            "top": int(monitor.get("top", 0)),
+            "width": int(monitor.get("width", 0)),
+            "height": int(monitor.get("height", 0)),
+            "primary": primary,
+        }
+
+    @staticmethod
+    def _system_dpi() -> int:
+        """读取系统 DPI；不可用时回退到 Windows 标准 96 DPI。"""
+
+        try:
+            return int(USER32.GetDpiForSystem())
+        except Exception:  # noqa: BLE001
+            return 96
 
     def _window_info(self, hwnd: int) -> dict[str, Any]:
         """读取单个窗口的标题、类名与矩形信息。"""

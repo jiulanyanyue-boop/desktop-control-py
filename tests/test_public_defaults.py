@@ -23,6 +23,11 @@ def test_desktop_backend_protocol_accepts_fake_backend() -> None:
 
             return {}
 
+        def get_screen_metrics(self) -> dict:
+            """返回屏幕指标。"""
+
+            return {}
+
         def get_cursor_position(self) -> dict:
             """返回鼠标坐标。"""
 

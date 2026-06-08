@@ -24,6 +24,7 @@ This project takes that constraint seriously:
 
 - Observe the desktop first.
 - Preflight risky actions before executing them.
+- Wrap GUI actions in an observe-act-observe loop when evidence matters.
 - Use screenshot-first browser interaction instead of DOM scraping.
 - Keep tool calls auditable through local JSONL session logs.
 - Stay Windows-only and honest about safety boundaries.
@@ -38,6 +39,21 @@ text availability, and optional screenshot.
 
 It does not move the mouse, type, click, focus a window, or read clipboard text.
 Screenshots are opt-in because they can be large and privacy-sensitive.
+
+### Computer Use-Style Observe/Step Loop
+
+`computer_observe` is the richer observation tool for visual agents. It returns
+the desktop context plus a coordinate contract, screen metrics, optional base64
+screenshot data, and an optional screenshot artifact saved under `runtime/`.
+
+`computer_step` wraps a scoped desktop action in an observe-act-observe result.
+It supports `click`, `double_click`, `type`, and `hotkey` actions, with optional
+before/after observations and screenshot artifacts. Text input results are
+redacted to length metadata instead of echoing typed text back into the tool
+response.
+
+This is a Computer Use-style loop for Windows MCP agents. It is not a claim of
+compatibility with any proprietary Codex protocol.
 
 ### Safety Preflight Before Real Input
 
@@ -80,15 +96,15 @@ are kept stable for compatibility.
 A practical agent loop looks like this:
 
 ```text
-desktop_snapshot
+computer_observe
   -> safety_check
-  -> browser_capture or action_capture_screen
-  -> browser_click / action_click / action_type / keyboard_hotkey
+  -> computer_step(action=click/type/hotkey, observe_before=true, observe_after=true)
   -> audit_recent
 ```
 
-The point is simple: observe before acting, preflight risky operations, then
-inspect what happened.
+For browser-only work, `browser_capture -> browser_click -> audit_recent` remains
+the tighter screenshot-first path. For backward compatibility, the older
+`desktop_snapshot -> action_*` loop remains available.
 
 ## Quickstart
 
@@ -158,6 +174,8 @@ screenshot capture if a browser is already open.
 Agent-friendly observation and governance tools:
 
 - `desktop_snapshot`
+- `computer_observe`
+- `computer_step`
 - `safety_check`
 - `audit_recent`
 
@@ -194,7 +212,8 @@ It controls:
 - Screenshot format, quality, and grayscale defaults.
 
 Generated runtime files are written to `runtime/` and are ignored by git except
-for `runtime/.gitkeep`.
+for `runtime/.gitkeep`. Screenshot artifacts created by `computer_observe` and
+`computer_step` are saved under `runtime/screenshots/`.
 
 ## Validation
 
@@ -227,6 +246,8 @@ Safety policy focuses on:
 - Blocking risky system hotkeys unless explicitly allowed.
 - Blocking dangerous window operations by title.
 - Keeping browser interaction screenshot-first.
+- Returning explicit coordinate-space metadata for visual clicks.
+- Saving optional screenshot artifacts for review and traceability.
 - Preserving audit logs for tool calls.
 - Making observation and safety preflight available as explicit MCP tools.
 
@@ -248,9 +269,16 @@ backend, action engine, and safety policy.
 `ActionFlow` handles high-level `action_*` workflows such as optional window
 focus before click/type/hotkey/screenshot.
 
+`ComputerFlow` handles the richer `computer_observe` and `computer_step`
+observe-act-observe workflows for visual desktop agents.
+
 `BrowserFlow` handles screenshot-first browser capture and coordinate click
 flows. It uses real browser process/title matching and does not read DOM, UIA,
 page text, or clipboard content.
+
+`ScreenshotArtifactStore` saves Computer Use-style observation screenshots under
+`runtime/screenshots/` so sessions can be reviewed without relying only on large
+base64 payloads.
 
 `tool_registration.py` registers MCP tools by responsibility:
 
